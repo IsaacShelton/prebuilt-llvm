@@ -1,0 +1,76 @@
+name: Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      llvm_version:
+        description: 'LLVM Version'
+        required: true
+        default: '18.1.8'
+
+env:
+  BUILD_TYPE: Release
+  CTEST_OUTPUT_ON_FAILURE: On
+  IS_GITHUB_WORKFLOW: On
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Get latest CMake and Ninja
+        uses: lukka/get-cmake@latest
+      - name: Configure to use MinGW-w64
+        shell: bash
+        run: |
+          export CC=x86_64-w64-mingw32-gcc
+          export CXX=x86_64-w64-mingw32-g++
+      - name: Download LLVM Source Code
+        run: curl -o llvm-source-tree.tar.xz -L https://github.com/llvm/llvm-project/releases/download/llvmorg-${{github.event.inputs.llvm_version}}/llvm-project-${{github.event.inputs.llvm_version}}.src.tar.xz
+      - name: Extract LLVM Source Code
+        run: |
+          7z x llvm-source-tree.tar.xz
+          tar xf llvm-source-tree.tar
+          mv llvm-project-${{github.event.inputs.llvm_version}}.src llvm
+      - name: Build LLVM from Source
+        working-directory: ${{github.workspace}}/llvm/llvm
+        shell: bash
+        run: |
+          mkdir build
+          cmake -B build -DCMAKE_BUILD_TYPE="Release" -G Ninja
+          cmake --build build
+      - name: Download static zlib libraries
+        run: |
+          C:\msys64\usr\bin\pacman -S mingw-w64-x86_64-zlib --noconfirm
+      - name: Download zstd library
+        run: |
+          C:\msys64\usr\bin\pacman -S mingw-w64-x86_64-zstd --noconfirm
+      - name: Configure
+        run: |
+          $env:Path = "C:/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin;$env:Path"
+          cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_PREFIX_PATH="${{github.workspace}}/llvm/llvm/build;C:\msys64\mingw64" -DCMAKE_LIBRARY_PATH=C:\msys64\mingw64\lib -DCURL_LIBRARY=curl -DCURL_LIBRARY_DIRS=${{github.workspace}}/libcurl/lib -DCURL_INCLUDE_DIR=libcurl/include -DADEPT_LINK_LLVM_STATIC=On -B ${{github.workspace}}/build -G Ninja
+        env:
+          LLVM_DIR: ${{github.workspace}}/llvm/llvm/build
+          zstd_DIR: C:\msys64\mingw64
+          zstd_LIBRARY: C:\msys64\mingw64\lib\libzstd.a
+          ZLIB_INCLUDE_DIR: C:\msys64\mingw64\include
+          ZLIB_LIBRARY: C:\msys64\mingw64\lib\libz.a
+      - name: Build
+        run: |
+          cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+      - name: Archive Build Result
+        uses: a7ul/tar-action@v1.1.3
+        with:
+          command: c
+          files: build
+          outPath: prebuilt-llvm-${{github.event.inputs.llvm_version}}-x86_64-pc-windows-gnu.tar.gz
+      - name: Release
+        uses: IsaacShelton/update-existing-release@v1.3.4
+        with:
+          token: ${{secrets.GITHUB_TOKEN}}
+          release: llvm-${{github.event.inputs.llvm_version}}
+          body: Prebuilt binaries for LLVM ${{github.event.inputs.llvm_version}}
+          replace: true
+          files: >
+            prebuilt-llvm-${{github.event.inputs.llvm_version}}-x86_64-pc-windows-gnu.tar.gz
+
