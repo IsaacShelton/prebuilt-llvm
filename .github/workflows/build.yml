@@ -39,30 +39,11 @@ jobs:
           mkdir build
           cmake -B build -DCMAKE_BUILD_TYPE="Release" -G Ninja
           cmake --build build
-      - name: Download static zlib libraries
-        run: |
-          C:\msys64\usr\bin\pacman -S mingw-w64-x86_64-zlib --noconfirm
-      - name: Download zstd library
-        run: |
-          C:\msys64\usr\bin\pacman -S mingw-w64-x86_64-zstd --noconfirm
-      - name: Configure
-        run: |
-          $env:Path = "C:/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin;$env:Path"
-          cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_PREFIX_PATH="${{github.workspace}}/llvm/llvm/build;C:\msys64\mingw64" -DCMAKE_LIBRARY_PATH=C:\msys64\mingw64\lib -DCURL_LIBRARY=curl -DCURL_LIBRARY_DIRS=${{github.workspace}}/libcurl/lib -DCURL_INCLUDE_DIR=libcurl/include -DADEPT_LINK_LLVM_STATIC=On -B ${{github.workspace}}/build -G Ninja
-        env:
-          LLVM_DIR: ${{github.workspace}}/llvm/llvm/build
-          zstd_DIR: C:\msys64\mingw64
-          zstd_LIBRARY: C:\msys64\mingw64\lib\libzstd.a
-          ZLIB_INCLUDE_DIR: C:\msys64\mingw64\include
-          ZLIB_LIBRARY: C:\msys64\mingw64\lib\libz.a
-      - name: Build
-        run: |
-          cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
       - name: Archive Build Result
         uses: a7ul/tar-action@v1.1.3
         with:
           command: c
-          files: build
+          files: ${{github.workspace}}/llvm/llvm/build
           outPath: prebuilt-llvm-${{github.event.inputs.llvm_version}}-x86_64-pc-windows-gnu.tar.gz
       - name: Release
         uses: IsaacShelton/update-existing-release@v1.3.4
