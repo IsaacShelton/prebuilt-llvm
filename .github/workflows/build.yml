@@ -48,12 +48,11 @@ jobs:
           outPath: prebuilt-llvm-${{github.event.inputs.llvm_version}}-x86_64-pc-windows-gnu.tar.gz
       - name: Release
         uses: IsaacShelton/update-existing-release@v1.3.4
-        working-directory: ${{github.workspace}}/llvm/llvm
         with:
           token: ${{secrets.GITHUB_TOKEN}}
           release: llvm-${{github.event.inputs.llvm_version}}
           body: Prebuilt binaries for LLVM ${{github.event.inputs.llvm_version}}
           replace: true
           files: >
-            prebuilt-llvm-${{github.event.inputs.llvm_version}}-x86_64-pc-windows-gnu.tar.gz
+            ${{github.workspace}}/llvm/llvm/prebuilt-llvm-${{github.event.inputs.llvm_version}}-x86_64-pc-windows-gnu.tar.gz
 
