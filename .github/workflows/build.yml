@@ -10,7 +10,6 @@ on:
 
 env:
   BUILD_TYPE: Release
-  CTEST_OUTPUT_ON_FAILURE: On
   IS_GITHUB_WORKFLOW: On
 
 jobs:
@@ -36,17 +35,20 @@ jobs:
         working-directory: ${{github.workspace}}/llvm/llvm
         shell: bash
         run: |
+          x86_64-w64-mingw32-gcc -v
           mkdir build
           cmake -B build -DCMAKE_BUILD_TYPE="Release" -DCMAKE_CXX_STANDARD_LIBRARIES="-static-libgcc -static-libstdc++ -Wl,-Bstatic -lstdc++ -lpthread -lcomctl32 -lpsapi -Wl,-Bdynamic" -G Ninja
           cmake --build build
       - name: Archive Build Result
         uses: a7ul/tar-action@v1.1.3
+        working-directory: ${{github.workspace}}/llvm/llvm
         with:
           command: c
-          files: ${{github.workspace}}/llvm/llvm/build
+          files: build
           outPath: prebuilt-llvm-${{github.event.inputs.llvm_version}}-x86_64-pc-windows-gnu.tar.gz
       - name: Release
         uses: IsaacShelton/update-existing-release@v1.3.4
+        working-directory: ${{github.workspace}}/llvm/llvm
         with:
           token: ${{secrets.GITHUB_TOKEN}}
           release: llvm-${{github.event.inputs.llvm_version}}
