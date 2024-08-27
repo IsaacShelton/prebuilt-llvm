@@ -54,5 +54,5 @@ jobs:
           body: Prebuilt binaries for LLVM ${{github.event.inputs.llvm_version}}
           replace: true
           files: >
-            ${{github.workspace}}/llvm/llvm/prebuilt-llvm-${{github.event.inputs.llvm_version}}-x86_64-pc-windows-gnu.tar.gz
+            ${{github.workspace}}/prebuilt-llvm-${{github.event.inputs.llvm_version}}-x86_64-pc-windows-gnu.tar.gz
 
